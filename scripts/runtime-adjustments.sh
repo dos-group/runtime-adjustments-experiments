@@ -19,7 +19,7 @@ for (( i = 0; i < 10; i++ )); do
     --executor-cores 8 \
     --properties-file conf/spark-defaults.conf \
     --class de.tuberlin.cit.SparkSGD \
-    runtime-adjustments-experiments-1.0-SNAPSHOT-jar-with-dependencies.jar \
+    ../target/runtime-adjustments-experiments-1.0-SNAPSHOT-jar-with-dependencies.jar \
     --min-containers 4 \
     --max-containers 40 \
     --max-runtime 350000 \
