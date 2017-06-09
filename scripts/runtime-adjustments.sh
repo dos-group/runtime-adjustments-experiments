@@ -9,7 +9,7 @@ export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
 
 for (( i = 0; i < 10; i++ )); do
 
-    echo "Executing run $i"
+    echo "Executing run $i..."
 
     RUN_NAME=run$(printf %02d $i)
 
@@ -18,14 +18,14 @@ for (( i = 0; i < 10; i++ )); do
     --deploy-mode cluster \
     --executor-cores 8 \
     --properties-file conf/spark-defaults.conf \
-    --class de.tuberlin.cit.spark.SparkSGD \
-    runtime-adjustments-experiments-spark-jobs-1.0-SNAPSHOT.jar \
+    --class de.tuberlin.cit.SparkSGD \
+    runtime-adjustments-experiments-1.0-SNAPSHOT-jar-with-dependencies.jar \
     --min-containers 4 \
     --max-containers 40 \
     --max-runtime 350000 \
     --iterations 20 \
     --adaptive \
-    --db "/home/ilya/allocation-assistant/target/bell;DB_CLOSE_ON_EXIT=FALSE" \
+    --db "../target/bell" \
     hdfs://wally020:45010//sgd.txt \
     > logs/${RUN_NAME}.out 2> logs/${RUN_NAME}.log
 
