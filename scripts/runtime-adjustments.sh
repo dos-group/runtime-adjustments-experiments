@@ -25,7 +25,7 @@ for (( i = 0; i < 10; i++ )); do
     --max-runtime 350000 \
     --iterations 20 \
     --adaptive \
-    --db "../target/bell" \
+    --db "/home/ilya/runtime-adjustments-experiments/target/bell" \
     hdfs://wally020:45010//sgd.txt \
     > logs/${RUN_NAME}.out 2> logs/${RUN_NAME}.log
 
