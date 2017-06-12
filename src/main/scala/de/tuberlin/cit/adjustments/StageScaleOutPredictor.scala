@@ -62,7 +62,7 @@ class StageScaleOutPredictor(
           .map(_._1)
 
         if (candidateScaleOuts.isEmpty) {
-          maxExecutors
+          predictedScaleOuts(argmin(predictedRuntimes))
         } else {
           candidateScaleOuts.min
         }
@@ -263,11 +263,11 @@ class StageScaleOutPredictor(
     }
     val jobRuntimeData: Map[Int, List[(Int, Int, Int)]] = result.groupBy(_._1)
 
-    // calculate the de.tuberlin.cit.prediction for the remaining runtime depending on scale-out
+    // calculate the prediction for the remaining runtime depending on scale-out
     val predictedScaleOuts = (minExecutors to maxExecutors).toArray
     val remainingRuntimes: Array[DenseVector[Int]] = jobRuntimeData.keys
-      .toArray
       .filter(_ > jobId)
+      .toArray
       .sorted
       .map(jobId => {
         val (x, y) = jobRuntimeData(jobId).map(t => (t._2, t._3)).toArray.unzip
@@ -278,6 +278,7 @@ class StageScaleOutPredictor(
     if (remainingRuntimes.length <= 1) {
       return
     }
+
     val nextJobId = jobRuntimeData.keys.filter(_ > jobId).min
 
     // predicted runtimes of the next job
@@ -288,14 +289,14 @@ class StageScaleOutPredictor(
     val currentRuntime = System.currentTimeMillis() - appStartTime
     println(s"Current runtime: $currentRuntime")
     val nextJobRuntime = nextJobRuntimes(scaleOut - minExecutors)
-    println(s"Next job runtime de.tuberlin.cit.prediction: $nextJobRuntime")
+    println(s"Next job runtime prediction: $nextJobRuntime")
     val remainingTargetRuntime = targetRuntimeMs - currentRuntime - nextJobRuntime
     println(s"Remaining runtime: $remainingTargetRuntime")
     val remainingRuntimePrediction = futureJobsRuntimes(scaleOut - minExecutors)
-    println(s"Remaining runtime de.tuberlin.cit.prediction: $remainingRuntimePrediction")
+    println(s"Remaining runtime prediction: $remainingRuntimePrediction")
 
     // check if current scale-out can fulfill the target runtime constraint
-    // TODO currently, the rescaling only happens if the remaining runtime de.tuberlin.cit.prediction *exceeds* the constraint
+    // TODO currently, the rescaling only happens if the remaining runtime prediction *exceeds* the constraint
     val relativeSlack = 1.05
     val absoluteSlack = 0
     if (remainingRuntimePrediction > remainingTargetRuntime * relativeSlack + absoluteSlack) {

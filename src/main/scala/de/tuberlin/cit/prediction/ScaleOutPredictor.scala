@@ -27,7 +27,7 @@ class ScaleOutPredictor {
     val (minScaleOut, maxScaleOut) = scaleOutConstraint
     val xPredict = DenseVector.range(minScaleOut, maxScaleOut+1)
 
-    // subdivide the scaleout range into interpolation and extrapolation
+    // subdivide the scale-out range into interpolation and extrapolation
     // FIXME wrong interpolation mask
     val interpolationMask = (xPredict :>= minScaleOut) :& (xPredict :<= maxScaleOut)
     val xPredictInterpolation = xPredict(interpolationMask).toDenseVector
@@ -48,12 +48,12 @@ class ScaleOutPredictor {
 
     yPredict(!interpolationMask) := ernest.predict(convert(xPredictExtrapolation, Double))
 
-    // get the de.tuberlin.cit.prediction over the constrained scaleout range
+    // get the prediction over the constrained scale-out range
     val targetMask = yPredict :< runtime
     val xTarget = xPredict(targetMask)
     val yTarget = yPredict(targetMask)
 
-    // select smallest scaleout satisfying the runtime constraint (greedy), if possible
+    // select smallest scale-out satisfying the runtime constraint (greedy), if possible
     if (xTarget.length == 0) {
       return None
     }

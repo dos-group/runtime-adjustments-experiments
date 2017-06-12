@@ -64,7 +64,7 @@ object SparkTest {
         // generate the function value with added gaussian noise
         val label = function(x) + noise
 
-        // generate a vandermatrix from x
+        // generate a vandermonde matrix from x
         val vector = polyvander(x, n - 1)
 
         LabeledPoint(label, new DenseVector(vector))
