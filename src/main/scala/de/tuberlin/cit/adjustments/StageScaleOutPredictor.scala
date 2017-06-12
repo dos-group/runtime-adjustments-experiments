@@ -46,7 +46,7 @@ class StageScaleOutPredictor(
       case 1 => halfExecutors
       case 2 =>
 
-        if (runtimes.sorted.last < targetRuntimeMs) {
+        if (runtimes.max < targetRuntimeMs) {
           (minExecutors + halfExecutors) / 2
         } else {
           (halfExecutors + maxExecutors) / 2
@@ -251,7 +251,7 @@ class StageScaleOutPredictor(
     if (remainingRuntimes.length <= 1) {
       return
     }
-    val nextJobId = jobRuntimeData.keys.filter(_ > jobId).toArray.sorted.head
+    val nextJobId = jobRuntimeData.keys.filter(_ > jobId).min
 
     // predicted runtimes of the next job
     val nextJobRuntimes = remainingRuntimes.head
