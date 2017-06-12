@@ -296,10 +296,14 @@ class StageScaleOutPredictor(
     println(s"Remaining runtime prediction: $remainingRuntimePrediction")
 
     // check if current scale-out can fulfill the target runtime constraint
-    // TODO currently, the rescaling only happens if the remaining runtime prediction *exceeds* the constraint
-    val relativeSlack = 1.05
-    val absoluteSlack = 0
-    if (remainingRuntimePrediction > remainingTargetRuntime * relativeSlack + absoluteSlack) {
+    val relativeSlackUp = 1.05
+    val absoluteSlackUp = 0
+
+    val relativeSlackDown = .85
+    val absoluteSlackDown = 0
+
+    if (remainingRuntimePrediction > remainingTargetRuntime * relativeSlackUp + absoluteSlackUp) {
+
       val nextScaleOutIndex = futureJobsRuntimes.findAll(_ < remainingTargetRuntime * .9)
         .sorted
         .headOption
@@ -311,6 +315,21 @@ class StageScaleOutPredictor(
         sparkContext.requestTotalExecutors(nextScaleOut, 0, Map[String,Int]())
         this.nextScaleOut = nextScaleOut
       }
+
+    } else if (remainingRuntimePrediction < remainingTargetRuntime * relativeSlackDown - absoluteSlackDown) {
+
+      val nextScaleOutIndex = futureJobsRuntimes.findAll(_ < remainingTargetRuntime * .9)
+        .sorted
+        .headOption
+        .getOrElse(argmin(futureJobsRuntimes))
+      val nextScaleOut = predictedScaleOuts(nextScaleOutIndex)
+
+      if (nextScaleOut < scaleOut) {
+        println(s"Adjusting scale-out to $nextScaleOut after job $nextJobId.")
+        sparkContext.requestTotalExecutors(nextScaleOut, 0, Map[String,Int]())
+        this.nextScaleOut = nextScaleOut
+      }
+
     }
 
   }
