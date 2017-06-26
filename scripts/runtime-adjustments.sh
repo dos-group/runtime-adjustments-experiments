@@ -22,7 +22,7 @@ for (( i = 0; i < 10; i++ )); do
     ../target/runtime-adjustments-experiments-1.0-SNAPSHOT-jar-with-dependencies.jar \
     --min-containers 4 \
     --max-containers 40 \
-    --max-runtime 350000 \
+    --max-runtime 360000 \
     --iterations 20 \
     --adaptive \
     --db "/home/ilya/runtime-adjustments-experiments/target/bell" \

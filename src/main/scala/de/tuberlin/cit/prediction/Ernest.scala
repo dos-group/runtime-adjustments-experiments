@@ -30,7 +30,7 @@ class Ernest extends UnivariatePredictor {
   private def featureMap(x: DenseVector[Double]): DenseMatrix[Double] = {
     DenseMatrix.vertcat(
       DenseVector.ones[Double](x.length).asDenseMatrix,
-      (DenseVector.ones[Double](x.length) /:/ x).asDenseMatrix,
+      (DenseVector.ones[Double](x.length) :/ x).asDenseMatrix,
       log(x).asDenseMatrix,
       x.asDenseMatrix
     ).t

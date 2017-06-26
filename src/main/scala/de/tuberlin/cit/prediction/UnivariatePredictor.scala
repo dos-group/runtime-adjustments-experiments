@@ -14,7 +14,7 @@ import breeze.linalg.DenseVector
   * val (xTrain, yTrain) = getTrainingData()
   * predictor.fit(xTrain, yTrain)
   *
-  * // now the model can be used for de.tuberlin.cit.prediction
+  * // now the model can be used for prediction
   * val (xTest, yTest) = getTestData()
   * val yPredict = predictor.predict(xTest)
   * }}}

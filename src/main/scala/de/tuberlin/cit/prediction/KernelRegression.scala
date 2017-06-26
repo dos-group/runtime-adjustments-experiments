@@ -61,7 +61,7 @@ class KernelRegression(degree: Int = 1, bandwidth: Double = 1, tolerance: Double
   private def predictSingle(X: DenseMatrix[Double], y: DenseVector[Double],
                             x: DenseVector[Double], w: DenseVector[Double]): Double = {
 
-    val Xw: DenseMatrix[Double] = X(::, *) *:* w
+    val Xw: DenseMatrix[Double] = X(::, *) :* w
     val c: DenseVector[Double] = (Xw.t * X + tolerance * DenseMatrix.eye[Double](X.cols)) \ (Xw.t * y)
 
     x.t * c

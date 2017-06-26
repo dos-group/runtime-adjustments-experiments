@@ -18,7 +18,7 @@ class Bell extends UnivariatePredictor {
     // compute the cv score using interpolation splits
     val scores = CrossValidation.crossValidationScore(models, new InterpolationSplits(x, y),
       (yPredict, y) => {
-        sum(abs(yPredict - y) /:/ y) / y.length
+        sum(abs(yPredict - y) :/ y) / y.length
       })
 
     // compute mean score for each model and select the best

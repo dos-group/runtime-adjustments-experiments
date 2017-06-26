@@ -37,7 +37,7 @@ class StageScaleOutPredictor(
   sparkContext.requestTotalExecutors(scaleOut, 0, Map[String,Int]())
 
   def computeInitialScaleOut(): Int = {
-    val (scaleOuts, runtimes) = getNonAdaptiveRuns(appSignature)
+    val (scaleOuts, runtimes) = getNonAdaptiveRuns
 
     val halfExecutors = (minExecutors + maxExecutors) / 2
 
@@ -46,7 +46,7 @@ class StageScaleOutPredictor(
       case 1 => halfExecutors
       case 2 =>
 
-        if (runtimes.sorted.last < targetRuntimeMs) {
+        if (runtimes.max < targetRuntimeMs) {
           (minExecutors + halfExecutors) / 2
         } else {
           (halfExecutors + maxExecutors) / 2
@@ -55,29 +55,56 @@ class StageScaleOutPredictor(
       case _ =>
 
         val predictedScaleOuts = (minExecutors to maxExecutors).toArray
-        val predictedRuntimes = computePredictions(scaleOuts, runtimes, predictedScaleOuts)
+        val predictedRuntimes = computePredictionsFromStageRuntimes(predictedScaleOuts)
 
         val candidateScaleOuts = (predictedScaleOuts zip predictedRuntimes)
           .filter(_._2 < targetRuntimeMs)
           .map(_._1)
 
         if (candidateScaleOuts.isEmpty) {
-          maxExecutors
+          predictedScaleOuts(argmin(predictedRuntimes))
         } else {
           candidateScaleOuts.min
         }
 
     }
 
-
   }
 
-  def getNonAdaptiveRuns(appSignature: String): (Array[Int], Array[Int]) = {
+  def computePredictionsFromStageRuntimes(predictedScaleOuts: Array[Int]): Array[Int] = {
+    val result = DB readOnly { implicit session =>
+      sql"""
+      SELECT JOB_ID, SCALE_OUT, DURATION_MS
+      FROM APP_EVENT JOIN JOB_EVENT ON APP_EVENT.ID = JOB_EVENT.APP_EVENT_ID
+      WHERE APP_ID = ${appSignature}
+      ORDER BY JOB_ID;
+      """.map({ rs =>
+        val jobId = rs.int("job_id")
+        val scaleOut = rs.int("scale_out")
+        val durationMs = rs.int("duration_ms")
+        (jobId, scaleOut, durationMs)
+      }).list().apply()
+    }
+    val jobRuntimeData: Map[Int, List[(Int, Int, Int)]] = result.groupBy(_._1)
+
+    val predictedRuntimes: Array[DenseVector[Int]] = jobRuntimeData.keys
+      .toArray
+      .sorted
+      .map(jobId => {
+        val (x, y) = jobRuntimeData(jobId).map(t => (t._2, t._3)).toArray.unzip
+        val predictedRuntimes: Array[Int] = computePredictions(x, y, predictedScaleOuts)
+        DenseVector(predictedRuntimes)
+      })
+
+    predictedRuntimes.fold(DenseVector.zeros[Int](predictedScaleOuts.length))(_ + _).toArray
+  }
+
+  def getNonAdaptiveRuns: (Array[Int], Array[Int]) = {
     val result = DB readOnly { implicit session =>
       sql"""
       SELECT APP_EVENT.STARTED_AT, SCALE_OUT, DURATION_MS
       FROM APP_EVENT JOIN JOB_EVENT ON APP_EVENT.ID = JOB_EVENT.APP_EVENT_ID
-      WHERE APP_ID = $appSignature;
+      WHERE APP_ID = ${appSignature};
       """.map({ rs =>
         val startedAt = rs.timestamp("started_at")
         val scaleOut = rs.int("scale_out")
@@ -114,7 +141,7 @@ class StageScaleOutPredictor(
     val xPredict = DenseVector(predictedScaleOuts)
 
     // subdivide the scaleout range into interpolation and extrapolation
-    val interpolationMask: BitVector = (xPredict >:= min(scaleOuts)) &:& (xPredict <:= max(scaleOuts))
+    val interpolationMask: BitVector = (xPredict :>= min(scaleOuts)) :& (xPredict :<= max(scaleOuts))
     val xPredictInterpolation = xPredict(interpolationMask).toDenseVector
     val xPredictExtrapolation = xPredict(!interpolationMask).toDenseVector
 
@@ -212,7 +239,7 @@ class StageScaleOutPredictor(
     }
 
     if (isAdaptive) {
-      val (scaleOuts, runtimes) = getNonAdaptiveRuns(appSignature)
+      val (scaleOuts, runtimes) = getNonAdaptiveRuns
       if (scaleOuts.length > 3) { // do not scale adaptively for the bootstrap runs
         updateScaleOut(jobEnd.jobId)
       }
@@ -236,11 +263,11 @@ class StageScaleOutPredictor(
     }
     val jobRuntimeData: Map[Int, List[(Int, Int, Int)]] = result.groupBy(_._1)
 
-    // calculate the de.tuberlin.cit.prediction for the remaining runtime depending on scale-out
+    // calculate the prediction for the remaining runtime depending on scale-out
     val predictedScaleOuts = (minExecutors to maxExecutors).toArray
     val remainingRuntimes: Array[DenseVector[Int]] = jobRuntimeData.keys
-      .toArray
       .filter(_ > jobId)
+      .toArray
       .sorted
       .map(jobId => {
         val (x, y) = jobRuntimeData(jobId).map(t => (t._2, t._3)).toArray.unzip
@@ -251,7 +278,8 @@ class StageScaleOutPredictor(
     if (remainingRuntimes.length <= 1) {
       return
     }
-    val nextJobId = jobRuntimeData.keys.filter(_ > jobId).toArray.sorted.head
+
+    val nextJobId = jobRuntimeData.keys.filter(_ > jobId).min
 
     // predicted runtimes of the next job
     val nextJobRuntimes = remainingRuntimes.head
@@ -261,17 +289,21 @@ class StageScaleOutPredictor(
     val currentRuntime = System.currentTimeMillis() - appStartTime
     println(s"Current runtime: $currentRuntime")
     val nextJobRuntime = nextJobRuntimes(scaleOut - minExecutors)
-    println(s"Next job runtime de.tuberlin.cit.prediction: $nextJobRuntime")
+    println(s"Next job runtime prediction: $nextJobRuntime")
     val remainingTargetRuntime = targetRuntimeMs - currentRuntime - nextJobRuntime
     println(s"Remaining runtime: $remainingTargetRuntime")
     val remainingRuntimePrediction = futureJobsRuntimes(scaleOut - minExecutors)
-    println(s"Remaining runtime de.tuberlin.cit.prediction: $remainingRuntimePrediction")
+    println(s"Remaining runtime prediction: $remainingRuntimePrediction")
 
     // check if current scale-out can fulfill the target runtime constraint
-    // TODO currently, the rescaling only happens if the remaining runtime de.tuberlin.cit.prediction *exceeds* the constraint
-    val relativeSlack = 1.05
-    val absoluteSlack = 0
-    if (remainingRuntimePrediction > remainingTargetRuntime * relativeSlack + absoluteSlack) {
+    val relativeSlackUp = 1.05
+    val absoluteSlackUp = 0
+
+    val relativeSlackDown = .85
+    val absoluteSlackDown = 0
+
+    if (remainingRuntimePrediction > remainingTargetRuntime * relativeSlackUp + absoluteSlackUp) {
+
       val nextScaleOutIndex = futureJobsRuntimes.findAll(_ < remainingTargetRuntime * .9)
         .sorted
         .headOption
@@ -283,6 +315,21 @@ class StageScaleOutPredictor(
         sparkContext.requestTotalExecutors(nextScaleOut, 0, Map[String,Int]())
         this.nextScaleOut = nextScaleOut
       }
+
+    } else if (remainingRuntimePrediction < remainingTargetRuntime * relativeSlackDown - absoluteSlackDown) {
+
+      val nextScaleOutIndex = futureJobsRuntimes.findAll(_ < remainingTargetRuntime * .9)
+        .sorted
+        .headOption
+        .getOrElse(argmin(futureJobsRuntimes))
+      val nextScaleOut = predictedScaleOuts(nextScaleOutIndex)
+
+      if (nextScaleOut < scaleOut) {
+        println(s"Adjusting scale-out to $nextScaleOut after job $nextJobId.")
+        sparkContext.requestTotalExecutors(nextScaleOut, 0, Map[String,Int]())
+        this.nextScaleOut = nextScaleOut
+      }
+
     }
 
   }
