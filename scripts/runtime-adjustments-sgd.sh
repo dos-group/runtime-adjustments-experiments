@@ -18,7 +18,7 @@ for (( i = 0; i < 10; i++ )); do
     --deploy-mode cluster \
     --executor-cores 8 \
     --properties-file conf/spark-defaults.conf \
-    --class de.tuberlin.cit.SparkSGD \
+    --class de.tuberlin.cit.jobs.SGD \
     ../target/runtime-adjustments-experiments-1.0-SNAPSHOT-jar-with-dependencies.jar \
     --min-containers 4 \
     --max-containers 40 \
@@ -26,7 +26,7 @@ for (( i = 0; i < 10; i++ )); do
     --iterations 20 \
     --adaptive \
     --db "/home/ilya/runtime-adjustments-experiments/target/bell" \
-    hdfs://wally020:45010//sgd.txt \
+    hdfs://wally045:45010//sgd.txt \
     > logs/${RUN_NAME}.out 2> logs/${RUN_NAME}.log
 
 done

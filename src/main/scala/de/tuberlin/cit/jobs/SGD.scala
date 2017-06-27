@@ -1,4 +1,4 @@
-package de.tuberlin.cit
+package de.tuberlin.cit.jobs
 
 import de.tuberlin.cit.adjustments.StageScaleOutPredictor
 import org.apache.spark.mllib.optimization.SquaredL2Updater
@@ -8,13 +8,13 @@ import org.apache.spark.{SparkConf, SparkContext}
 import org.rogach.scallop.exceptions.ScallopException
 import org.rogach.scallop.{ScallopConf, ScallopOption}
 
-object SparkSGD {
+object SGD {
 
   def main(args: Array[String]): Unit = {
 
-    val conf = new Args(args)
+    val conf = new SGDArgs(args)
 
-    val appSignature = "SparkSGD"
+    val appSignature = "SGD"
 
     val sparkConf = new SparkConf()
       .setAppName(appSignature)
@@ -55,8 +55,7 @@ object SparkSGD {
     sparkContext.stop()
   }
 }
-
-class Args(a: Seq[String]) extends ScallopConf(a) {
+class SGDArgs(a: Seq[String]) extends ScallopConf(a) {
   //  val config = opt[String](required = true,
   //    descr = "Path to the .conf file")
   //
@@ -67,6 +66,9 @@ class Args(a: Seq[String]) extends ScallopConf(a) {
     descr = "Maximum runtime in seconds")
   val minContainers: ScallopOption[Int] = opt[Int](short = 'n', default = Option(1),
     descr = "Minimum number of containers to assign")
+  val maxContainers: ScallopOption[Int] = opt[Int](required = true, short = 'N',
+    descr = "Maximum number of containers to assign")
+
   //  val memory = opt[Int](
   //    descr = "Memory per container, in MB")
   //  val masterMemory = opt[Int](short = 'M',
@@ -77,15 +79,13 @@ class Args(a: Seq[String]) extends ScallopConf(a) {
     descr = "Amount of SGD iterations")
   val cache: ScallopOption[Boolean] = opt[Boolean](noshort = true, default = Option(false),
     descr = "Caches the input data")
-  val maxContainers: ScallopOption[Int] = opt[Int](required = true, short = 'N',
-    descr = "Maximum number of containers to assign")
   val adaptive: ScallopOption[Boolean] = opt[Boolean](default = Option(false), noshort = true,
-    descr = "Enables runtime de.tuberlin.cit.adjustments by scaling between jobs")
+    descr = "Enables runtime adjustments by scaling between jobs")
 
   override def onError(e: Throwable): Unit = e match {
     case ScallopException(message) =>
       println(message)
-      //      println(s"Usage: allocation-de.tuberlin.cit.assistant -c <config> -r <max runtime> -m <memory> -s <slots> " +
+      //      println(s"Usage: allocation-assistant -c <config> -r <max runtime> -m <memory> -s <slots> " +
       //        s"-i <fallback containers> -N <max containers> " +
       //        s"[more args ...] <Jar> [Jar args ...]")
       println()
@@ -96,4 +96,3 @@ class Args(a: Seq[String]) extends ScallopConf(a) {
 
   verify()
 }
-
