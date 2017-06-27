@@ -26,13 +26,11 @@ object KMeansDataGenerator {
 
     val centers = uniformRandomCenters(dim, k, stdDev)
     val centerDistribution = Rand.choose(centers)
-    val points = (1 to n).map(_ => {
-      val MeanConf(mean, stdDev) = centerDistribution.draw()
-      mean + DenseVector.rand[Double](mean.length, Rand.gaussian(0, stdDev))
-    })
 
     val writer = new PrintWriter(outputPath)
-    points.foreach(p => {
+    (1 to n).foreach(_ => {
+      val MeanConf(mean, stdDev) = centerDistribution.draw()
+      val p = mean + DenseVector.rand[Double](mean.length, Rand.gaussian(0, stdDev))
       writer.println(p.toArray.mkString(" "))
     })
     writer.flush()
