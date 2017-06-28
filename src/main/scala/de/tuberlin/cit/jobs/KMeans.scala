@@ -3,6 +3,7 @@
  */
 package de.tuberlin.cit.jobs
 
+import de.tuberlin.cit.adjustments.StageScaleOutPredictor
 import org.apache.spark.mllib.linalg.Vectors
 import org.apache.spark.{SparkConf, SparkContext}
 import org.rogach.scallop.exceptions.ScallopException
@@ -16,18 +17,19 @@ object KMeans {
     val conf = new KMeansArgs(args)
     val appSignature = "KMeans"
 
-
-//    if (args.length < 3) {
-//      //System.err.println("Usage: KMeans <master> <data_file> <k> <iterations> <save_path>" +
-//      System.err.println("Usage: KMeans <data_file> <k> <iterations>" +
-//        " [<slices>]")
-//      System.exit(1)
-//    }
-
     var splits = 2
     val sparkConf = new SparkConf()
       .setAppName(appSignature)
-    val sc = new SparkContext(sparkConf)
+    val sparkContext = new SparkContext(sparkConf)
+    val listener = new StageScaleOutPredictor(
+      sparkContext,
+      appSignature,
+      conf.dbPath(),
+      conf.minContainers(),
+      conf.maxContainers(),
+      conf.maxRuntime().toInt,
+      conf.adaptive())
+    sparkContext.addSparkListener(listener)
 
 //    val filename = args(0)
 //    val k = args(1).toInt
@@ -38,7 +40,7 @@ object KMeans {
 
     println("Start KMeans training...")
     // Load and parse the data
-    val data = sc.textFile(conf.input(), splits)
+    val data = sparkContext.textFile(conf.input(), splits)
     val parsedData = data.map(s => Vectors.dense(s.split(' ').map(_.toDouble)))
 
     val clusters = MLLibKMeans.train(parsedData, conf.k(), conf.iterations())
