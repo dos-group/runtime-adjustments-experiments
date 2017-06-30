@@ -43,7 +43,12 @@ object KMeans {
     val data = sparkContext.textFile(conf.input(), splits)
     val parsedData = data.map(s => Vectors.dense(s.split(' ').map(_.toDouble)))
 
-    val clusters = MLLibKMeans.train(parsedData, conf.k(), conf.iterations())
+    val clusters = new org.apache.spark.mllib.clustering.KMeans()
+      .setEpsilon(0)
+      .setK(conf.k())
+      .setMaxIterations(conf.iterations())
+      .run(parsedData)
+//    val clusters = MLLibKMeans.train(parsedData, conf.k(), conf.iterations())
 
     // Evaluate clustering by computing Within Set Sum of Squared Errors
     val WSSSE = clusters.computeCost(parsedData)
