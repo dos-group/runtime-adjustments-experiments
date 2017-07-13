@@ -21,11 +21,10 @@ for (( i = 0; i < 3; i++ )); do
     ../target/runtime-adjustments-experiments-1.0-SNAPSHOT-jar-with-dependencies.jar \
     --min-containers 4 \
     --max-containers 24 \
-    --max-runtime 360000 \
+    --max-runtime 3600000 \
     --iterations 10 \
     --db "/home/ilya/runtime-adjustments-experiments/target/bell" \
     hdfs://wally046:45010//uk-2007-05.txt \
-    hdfs://wally046:45010//cc-out \
     > logs/${RUN_NAME}.out 2> logs/${RUN_NAME}.log
 
 done

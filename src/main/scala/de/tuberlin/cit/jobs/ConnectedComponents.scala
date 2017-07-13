@@ -35,7 +35,14 @@ object ConnectedComponents {
     val graph: Graph[Int, Int] = Graph.fromEdgeTuples(edges, 1)
     val result: Graph[VertexId, Int] = graph.connectedComponents(conf.iterations())
 
-    result.vertices.saveAsTextFile(conf.output())
+    val largestComponentSize = result.vertices
+      .map(_.swap)
+      .mapValues(_ => 1L)
+      .reduceByKey(_ + _)
+      .sortBy(_._2, ascending = false)
+      .first()
+      ._2
+    println(s"Largest component size: $largestComponentSize")
   }
 }
 
@@ -47,8 +54,6 @@ class ConnectedComponentsArgs(a: Seq[String]) extends ScallopConf(a) {
     default = Some("./target/bell"))
   val input: ScallopOption[String] = trailArg[String](required = true, name = "<input>",
     descr = "Input file").map(_.toLowerCase)
-  val output: ScallopOption[String] = trailArg[String](required = true, name = "<output>",
-    descr = "Output file").map(_.toLowerCase)
   val maxRuntime: ScallopOption[Int] = opt[Int](required = true, short = 'r',
     descr = "Maximum runtime in milliseconds")
   val minContainers: ScallopOption[Int] = opt[Int](short = 'n', default = Option(1),
