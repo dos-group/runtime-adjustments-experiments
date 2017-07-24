@@ -32,7 +32,7 @@ object ConnectedComponents {
       val arr = s.split("\\s").map(_.toLong)
       (arr(0), arr(1))
     })
-    val graph: Graph[Int, Int] = Graph.fromEdgeTuples(edges, 1)
+    val graph: Graph[Int, Int] = Graph.fromEdgeTuples(edges, 1).cache()
     val result: Graph[VertexId, Int] = graph.connectedComponents(conf.iterations())
 
     val largestComponentSize = result.vertices

@@ -24,7 +24,7 @@ for (( i = 0; i < 3; i++ )); do
     --max-runtime 3600000 \
     --iterations 10 \
     --db "/home/ilya/runtime-adjustments-experiments/target/bell" \
-    hdfs://wally046:45010//uk-2007-05.txt \
+    hdfs://wally020:45010//twitter_rv.net \
     > logs/${RUN_NAME}.out 2> logs/${RUN_NAME}.log
 
 done

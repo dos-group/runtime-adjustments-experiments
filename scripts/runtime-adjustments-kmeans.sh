@@ -24,7 +24,7 @@ for (( i = 0; i < 3; i++ )); do
     --iterations 10 \
     --k 8 \
     --db "/home/ilya/runtime-adjustments-experiments/target/bell" \
-    hdfs://wally046:45010//kmeans.txt \
+    hdfs://wally020:45010//kmeans.txt \
     > logs/${RUN_NAME}.out 2> logs/${RUN_NAME}.log
 
 done
