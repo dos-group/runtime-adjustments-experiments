@@ -1,17 +1,17 @@
 package de.tuberlin.cit.jobs
 
 import de.tuberlin.cit.adjustments.StageScaleOutPredictor
-import org.apache.spark.graphx.{Graph, VertexId}
-import org.apache.spark.rdd.RDD
+import org.apache.spark.mllib.tree.configuration.BoostingStrategy
+import org.apache.spark.mllib.util.MLUtils
 import org.apache.spark.{SparkConf, SparkContext}
 import org.rogach.scallop.exceptions.ScallopException
 import org.rogach.scallop.{ScallopConf, ScallopOption}
 
-object ConnectedComponents {
+object GradientBoostedTrees {
   def main(args: Array[String]): Unit = {
 
-    val conf = new ConnectedComponentsArgs(args)
-    val appSignature = "CC"
+    val conf = new GradientBoostedTreesArgs(args)
+    val appSignature = "GBT"
 
     val sparkConf = new SparkConf()
       .setAppName(appSignature)
@@ -27,26 +27,38 @@ object ConnectedComponents {
     sparkContext.addSparkListener(listener)
 
     sparkContext.textFile(conf.input())
-    val data = sparkContext.textFile(conf.input())
-    val edges: RDD[(VertexId, VertexId)] = data.map(s => {
-      val arr = s.split("\\s").map(_.toLong)
-      (arr(0), arr(1))
-    })
-    val graph: Graph[Int, Int] = Graph.fromEdgeTuples(edges, 1).cache()
-    val result: Graph[VertexId, Int] = graph.connectedComponents(conf.iterations())
 
-    val largestComponentSize = result.vertices
-      .map(_.swap)
-      .mapValues(_ => 1L)
-      .reduceByKey(_ + _)
-      .sortBy(_._2, ascending = false)
-      .first()
-      ._2
-    println(s"Largest component size: $largestComponentSize")
+    // Load and parse the data file.
+    val data = MLUtils.loadLabeledPoints(sparkContext, conf.input())
+    // Split the data into training and test sets (30% held out for testing)
+    val splits = data.randomSplit(Array(0.7, 0.3))
+    val (trainingData, testData) = (splits(0), splits(1))
+
+    // Train a GradientBoostedTrees model.
+    // The defaultParams for Classification use LogLoss by default.
+    val boostingStrategy = BoostingStrategy
+      .defaultParams("Regression")
+    boostingStrategy.setNumIterations(conf.iterations()) // Note: Use more iterations in practice.
+    //    boostingStrategy.treeStrategy.setNumClasses(2)
+    //    boostingStrategy.treeStrategy.setMaxDepth(5)
+    // Empty categoricalFeaturesInfo indicates all features are continuous.
+    //    boostingStrategy.treeStrategy.setCategoricalFeaturesInfo(Map[Int, Int]())
+
+    val model = org.apache.spark.mllib.tree.GradientBoostedTrees.train(trainingData, boostingStrategy)
+
+    // Evaluate model on test instances and compute test error
+    val labelAndPreds = testData.map { point =>
+      val prediction = model.predict(point.features)
+      (point.label, prediction)
+    }
+    val testErr = labelAndPreds.filter(r => r._1 != r._2).count.toDouble / testData.count()
+    println("Test Error = " + testErr)
+    println("Learned classification GBT model:\n" + model.toDebugString)
+
   }
 }
 
-class ConnectedComponentsArgs(a: Seq[String]) extends ScallopConf(a) {
+class GradientBoostedTreesArgs(a: Seq[String]) extends ScallopConf(a) {
   //  val config = opt[String](required = true,
   //    descr = "Path to the .conf file")
   //
