@@ -23,6 +23,7 @@ class StageScaleOutPredictor(
   private var appEventId: Long = _
   private var appStartTime: Long = _
   private var jobStartTime: Long = _
+  private var jobEndTime: Long = _
 
   private var scaleOut: Int = _
   private var nextScaleOut: Int = _
@@ -175,7 +176,7 @@ class StageScaleOutPredictor(
     DB localTx { implicit session =>
       sql"""
       UPDATE app_event
-      SET finished_at = CURRENT_TIMESTAMP()
+      SET finished_at = ${new Date(applicationEnd.time)}
       WHERE id = ${appEventId};
       """.update().apply()
     }
@@ -184,7 +185,7 @@ class StageScaleOutPredictor(
 
   override def onJobStart(jobStart: SparkListenerJobStart): Unit = {
     println(s"Job ${jobStart.jobId} started.")
-    jobStartTime = System.currentTimeMillis()
+    jobStartTime = jobStart.time
 
     // https://stackoverflow.com/questions/29169981/why-is-sparklistenerapplicationstart-never-fired
     // onApplicationStart workaround
@@ -209,7 +210,7 @@ class StageScaleOutPredictor(
   }
 
   override def onJobEnd(jobEnd: SparkListenerJobEnd): Unit = {
-    val jobEndTime = System.currentTimeMillis()
+    jobEndTime = jobEnd.time
     val jobDuration = jobEndTime - jobStartTime
     println(s"Job ${jobEnd.jobId} finished in $jobDuration ms with $scaleOut nodes.")
 
@@ -286,7 +287,7 @@ class StageScaleOutPredictor(
     // predicted runtimes sum of the jobs *after* the next job
     val futureJobsRuntimes = remainingRuntimes.drop(1).fold(DenseVector.zeros[Int](predictedScaleOuts.length))(_ + _)
 
-    val currentRuntime = System.currentTimeMillis() - appStartTime
+    val currentRuntime = jobEndTime - appStartTime
     println(s"Current runtime: $currentRuntime")
     val nextJobRuntime = nextJobRuntimes(scaleOut - minExecutors)
     println(s"Next job runtime prediction: $nextJobRuntime")
