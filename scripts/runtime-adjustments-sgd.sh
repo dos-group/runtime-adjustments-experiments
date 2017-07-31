@@ -7,7 +7,7 @@ export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
 
 #$HADOOP_HOME/bin/hadoop fs -copyFromLocal /data/ilya/datasets/sgd.txt /
 
-for (( i = 0; i < 10; i++ )); do
+for (( i = 0; i < 50; i++ )); do
 
     echo "Executing run $i..."
 
@@ -21,11 +21,11 @@ for (( i = 0; i < 10; i++ )); do
     --class de.tuberlin.cit.jobs.SGD \
     ../target/runtime-adjustments-experiments-1.0-SNAPSHOT-jar-with-dependencies.jar \
     --min-containers 4 \
-    --max-containers 40 \
-    --max-runtime 360000 \
+    --max-containers 50 \
+    --max-runtime 300000 \
     --iterations 20 \
     --adaptive \
-    --db "/home/ilya/runtime-adjustments-experiments/target/bell" \
+    --db "tcp://130.149.249.30:9092/~/bell" \
     hdfs://wally020:45010//sgd.txt \
     > logs/${RUN_NAME}.out 2> logs/${RUN_NAME}.log
 

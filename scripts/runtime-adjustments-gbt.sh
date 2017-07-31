@@ -5,7 +5,7 @@ SPARK_HOME=${SPARK_HOME:-/home/ilya/spark-2.1.0-bin-hadoop2.7}
 
 export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
 
-for (( i = 0; i < 2; i++ )); do
+for (( i = 0; i < 50; i++ )); do
 
     echo "Executing run $i..."
 
@@ -20,10 +20,11 @@ for (( i = 0; i < 2; i++ )); do
     ../target/runtime-adjustments-experiments-1.0-SNAPSHOT-jar-with-dependencies.jar \
     --min-containers 4 \
     --max-containers 50 \
-    --max-runtime 360000 \
+    --max-runtime 300000 \
     --iterations 10 \
+    --adaptive \
     --db "tcp://130.149.249.30:9092/~/bell" \
-    hdfs://wally020:45010//sgd.txt \
+    hdfs://wally020:45010//sgd_3x.txt \
     > logs/${RUN_NAME}.out 2> logs/${RUN_NAME}.log
 
 done

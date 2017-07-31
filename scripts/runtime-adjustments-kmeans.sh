@@ -5,7 +5,7 @@ SPARK_HOME=${SPARK_HOME:-/home/ilya/spark-2.1.0-bin-hadoop2.7}
 
 export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
 
-for (( i = 0; i < 3; i++ )); do
+for (( i = 0; i < 50; i++ )); do
 
     echo "Executing run $i..."
 
@@ -19,11 +19,12 @@ for (( i = 0; i < 3; i++ )); do
     --class de.tuberlin.cit.jobs.KMeans \
     ../target/runtime-adjustments-experiments-1.0-SNAPSHOT-jar-with-dependencies.jar \
     --min-containers 4 \
-    --max-containers 24 \
-    --max-runtime 360000 \
+    --max-containers 50 \
+    --max-runtime 420000 \
     --iterations 10 \
+    --adaptive \
     --k 8 \
-    --db "/home/ilya/runtime-adjustments-experiments/target/bell" \
+    --db "tcp://130.149.249.30:9092/~/bell" \
     hdfs://wally020:45010//kmeans.txt \
     > logs/${RUN_NAME}.out 2> logs/${RUN_NAME}.log
 
