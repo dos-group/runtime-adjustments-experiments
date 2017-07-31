@@ -5,6 +5,7 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.ml.classification.MultilayerPerceptronClassifier
 import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
 import org.apache.spark.mllib.util.MLUtils
+import org.apache.spark.ml.feature.{LabeledPoint => NewLabeledPoint}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.rogach.scallop.exceptions.ScallopException
 import org.rogach.scallop.{ScallopConf, ScallopOption}
@@ -37,7 +38,9 @@ object MPC {
       conf.adaptive())
     spark.sparkContext.addSparkListener(listener)
 
-    val data = MLUtils.loadLabeledPoints(spark.sparkContext, conf.input()).toDF()
+    val data = MLUtils.loadLabeledPoints(spark.sparkContext, conf.input()).map(lp => {
+      NewLabeledPoint(lp.label, lp.features.asML)
+    }).toDF()
 
     // Split the data into train and test
     val splits = data.randomSplit(Array(0.6, 0.4), seed = 1234L)
