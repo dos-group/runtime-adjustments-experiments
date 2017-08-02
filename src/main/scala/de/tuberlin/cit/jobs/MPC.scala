@@ -57,7 +57,7 @@ object MPC {
       .setLayers(layers)
       .setBlockSize(128)
       .setSeed(1234L)
-      .setTol(Double.MinValue)
+      .setTol(Double.MinPositiveValue)
       .setMaxIter(conf.iterations())
 
     // train the model

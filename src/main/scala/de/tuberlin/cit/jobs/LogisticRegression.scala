@@ -45,7 +45,7 @@ object LogisticRegression {
       .setNumClasses(3)
     lr.optimizer
       .setNumIterations(conf.iterations())
-      .setConvergenceTol(Double.MinValue)
+      .setConvergenceTol(Double.MinPositiveValue)
     val model = lr.run(training)
 
     // Compute raw scores on the test set.
