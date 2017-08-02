@@ -43,7 +43,7 @@ object MPC {
     }).toDF()
 
     // Split the data into train and test
-    val splits = data.randomSplit(Array(0.6, 0.4), seed = 1234L)
+    val splits = data.randomSplit(Array(0.8, 0.2), seed = 1234L)
     val train = splits(0)
     val test = splits(1)
 
@@ -54,6 +54,7 @@ object MPC {
 
     // create the trainer and set its parameters
     val trainer = new MultilayerPerceptronClassifier()
+      .setSolver("gd")
       .setLayers(layers)
       .setBlockSize(128)
       .setSeed(1234L)
